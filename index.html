@@ -3,10 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weather Lookup App</title>
+  <title>Weather Conditions</title>
+
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Poppins', sans-serif;
+      font-family: "Poppins", Arial, sans-serif;
       background: linear-gradient(to bottom right, #74b9ff, #a29bfe);
       min-height: 100vh;
       margin: 0;
@@ -14,51 +19,60 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #fff;
+      color: white;
       text-align: center;
     }
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-
     .weather-container {
-      background: rgba(255, 255, 255, 0.15);
+      width: 90%;
+      max-width: 400px;
       padding: 2rem;
+      background: rgba(255, 255, 255, 0.15);
       border-radius: 20px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-      max-width: 400px;
-      width: 90%;
+    }
+
+    h1 {
+      margin: 0 0 1rem;
+      font-size: 2rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    input,
+    button {
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font: inherit;
     }
 
     input {
-      padding: 0.5rem;
-      border: none;
-      border-radius: 8px;
-      width: 70%;
-      font-size: 1rem;
-      outline: none;
+      width: 100%;
     }
 
     button {
-      background-color: #0984e3;
+      margin-top: 1rem;
+      background: #0984e3;
       color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 0.6rem 1rem;
-      font-size: 1rem;
       cursor: pointer;
-      transition: 0.3s;
     }
 
     button:hover {
-      background-color: #74b9ff;
+      background: #076bb8;
     }
 
-    .result {
+    #result {
       margin-top: 1.5rem;
-      font-size: 1.1rem;
+    }
+
+    .temperature {
+      margin: 0;
+      font-size: 2.5rem;
+      font-weight: bold;
     }
 
     .error {
@@ -66,69 +80,112 @@
       font-weight: bold;
     }
 
-    .temp {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-top: 1rem;
-    }
-
     footer {
       margin-top: 2rem;
       font-size: 0.8rem;
-      color: #dfe6e9;
     }
   </style>
 </head>
+
 <body>
-  <div class="weather-container">
-    <h1>🌦️ Weather Lookup App</h1>
-    <p>Enter any city to see its current weather.</p>
-    <input type="text" id="cityInput" placeholder="Enter city name..." />
-    <br><br>
-    <button onclick="getWeather()">Get Weather</button>
+  <main class="weather-container">
+    <h1>🌦️ Weather Conditions</h1>
 
-    <div class="result" id="result"></div>
-  </div>
+    <form id="weatherForm">
+      <label for="cityInput">Enter a city to see its current weather.</label>
+      <input type="text" id="cityInput" value="Ajman, AE" required />
+      <button type="submit">Get Weather</button>
+    </form>
 
-  <footer>Powered by OpenWeatherMap API</footer>
+    <section id="result" aria-live="polite"></section>
+  </main>
+
+  <footer>Powered by OpenWeatherMap</footer>
 
   <script>
+    const apiKey = "YOUR_API_KEY";
+    const form = document.getElementById("weatherForm");
+    const cityInput = document.getElementById("cityInput");
+    const result = document.getElementById("result");
+    let latestRequest = 0;
+
     async function getWeather() {
-      const city = document.getElementById("cityInput").value.trim();
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
+      const requestId = ++latestRequest;
+      const city = cityInput.value.trim().replace(/\s*,\s*/g, ",");
+      result.className = "";
 
       if (!city) {
-        resultDiv.innerHTML = "<p class='error'>Please enter a city name.</p>";
+        result.textContent = "Please enter a city name.";
         return;
       }
 
-      resultDiv.innerHTML = "<p>Loading...</p>";
+      if (apiKey === "YOUR_API_KEY") {
+        result.textContent = "Add your OpenWeatherMap API key to load the weather.";
+        return;
+      }
 
-      const apiKey = "c086d0ddb0d7991ee1929050cb699643";
-      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+      result.textContent = "Loading weather...";
+
+      const url = new URL("https://api.openweathermap.org/data/2.5/weather");
+      url.search = new URLSearchParams({
+        q: city,
+        appid: apiKey,
+        units: "metric",
+        lang: "en"
+      });
 
       try {
         const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error("City not found");
+
+        if (response.status === 404) {
+          throw new Error("City not found. Please check the spelling.");
         }
+
+        if (response.status === 401) {
+          throw new Error("Please check your OpenWeatherMap API key.");
+        }
+
+        if (!response.ok) {
+          throw new Error("Weather is unavailable. Please try again later.");
+        }
+
         const data = await response.json();
+        if (requestId !== latestRequest) return;
 
-        const temperature = data.main.temp;
-        const description = data.weather[0].description;
-        const icon = data.weather[0].icon;
+        const weather = data.weather[0];
 
-        resultDiv.innerHTML = `
-          <h2>${data.name}, ${data.sys.country}</h2>
-          <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="Weather Icon" />
-          <p class="temp">${temperature}°C</p>
-          <p>${description.charAt(0).toUpperCase() + description.slice(1)}</p>
-        `;
+        const location = document.createElement("h2");
+        location.textContent = `${data.name}, ${data.sys.country}`;
+
+        const icon = document.createElement("img");
+        icon.src = `https://openweathermap.org/img/wn/${weather.icon}@2x.png`;
+        icon.alt = "";
+
+        const temperature = document.createElement("p");
+        temperature.className = "temperature";
+        temperature.textContent = `${Math.round(data.main.temp)}°C`;
+
+        const description = document.createElement("p");
+        description.textContent =
+          weather.description.charAt(0).toUpperCase() + weather.description.slice(1);
+
+        result.replaceChildren(location, icon, temperature, description);
       } catch (error) {
-        resultDiv.innerHTML = "<p class='error'>City not found. Please try again.</p>";
+        if (requestId !== latestRequest) return;
+
+        result.className = "error";
+        result.textContent = error instanceof TypeError
+          ? "Could not load the weather. Please check your internet connection."
+          : error.message;
       }
     }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      getWeather();
+    });
+
+    getWeather();
   </script>
 </body>
 </html>
