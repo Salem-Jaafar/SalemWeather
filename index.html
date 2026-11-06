@@ -12,7 +12,7 @@
 
     body {
       font-family: "Poppins", Arial, sans-serif;
-      background: linear-gradient(to bottom right, #74b9ff, #a29bfe);
+      background: linear-gradient(to bottom right, #134e4a, #0f766e);
       min-height: 100vh;
       margin: 0;
       display: flex;
@@ -100,7 +100,7 @@
     <section id="result" aria-live="polite"></section>
   </main>
 
-  <footer>Powered by OpenWeatherMap</footer>
+  <footer>Created by <bdi lang="ar">سالم</bdi> · Powered by OpenWeatherMap</footer>
 
   <script>
     const apiKey = "YOUR_API_KEY";
@@ -132,7 +132,7 @@
         appid: apiKey,
         units: "metric",
         lang: "en"
-      });
+      }).toString();
 
       try {
         const response = await fetch(url);
@@ -167,7 +167,8 @@
 
         const description = document.createElement("p");
         description.textContent =
-          weather.description.charAt(0).toUpperCase() + weather.description.slice(1);
+          weather.description.charAt(0).toUpperCase() +
+          weather.description.slice(1);
 
         result.replaceChildren(location, icon, temperature, description);
       } catch (error) {
